@@ -10,7 +10,7 @@ Classes to generate bokeh plots
 #    See the file LICENSE included with this distribution, also
 #    available at https://github.com/cutright/DVH-Analytics
 
-import wx.html2
+import wx.html2 as webview
 from functools import partial
 from bokeh.plotting import figure
 from bokeh.io.export import get_layout_html, export_svgs, export_png
@@ -32,6 +32,24 @@ from dvha.paths import TEMP_DIR
 from math import pi
 from copy import deepcopy
 from sklearn.metrics import mean_squared_error
+
+
+# WebView Backends
+backends = [
+    (webview.WebViewBackendEdge, 'WebViewBackendEdge'),
+    (webview.WebViewBackendIE, 'WebViewBackendIE'),
+    (webview.WebViewBackendWebKit, 'WebViewBackendWebKit'),
+    (webview.WebViewBackendDefault, 'WebViewBackendDefault'),
+]
+webview.WebView.MSWSetEmulationLevel(webview.WEBVIEWIE_EMU_IE11)
+# Find an available backend
+backend = None
+for id, name in backends:
+    available = webview.WebView.IsBackendAvailable(id)
+    # print("Backend 'wx.html2.{}' availability: {}\n".format(name, available))
+    if available and backend is None:
+        backend = id
+print("Using backend: '{}'\n".format(str(backend, 'ascii')))
 
 
 DEFAULT_TOOLS = "pan,box_zoom,crosshair,reset"
@@ -58,7 +76,7 @@ class Plot:
 
         self.options = options
 
-        self.layout = wx.html2.WebView.New(parent)
+        self.layout = webview.WebView.New(parent, backend=backend)
         self.bokeh_layout = None
         self.html_str = ''
 
@@ -134,15 +152,16 @@ class Plot:
             msg = 'Plot.update_bokeh_layout_in_wx_python: bokeh.io.export.get_layout_html failed'
             push_to_log(e, msg=msg)
             raise PlottingMemoryError(self.type)
-        if is_windows():  # Windows requires LoadURL()
-            if not isdir(TEMP_DIR):
-                mkdir(TEMP_DIR)
-            web_file = join(TEMP_DIR, "%s.html" % self.type)
-            with open(web_file, 'wb') as f:
-                f.write(self.html_str.encode("utf-8"))
-            self.layout.LoadURL(web_file)
-        else:
-            self.layout.SetPage(self.html_str, "")
+        # if is_windows():  # Windows requires LoadURL()
+        #     if not isdir(TEMP_DIR):
+        #         mkdir(TEMP_DIR)
+        #     web_file = join(TEMP_DIR, "%s.html" % self.type)
+        #     with open(web_file, 'wb') as f:
+        #         f.write(self.html_str.encode("utf-8"))
+        #     self.layout.LoadURL(web_file)
+        # else:
+        # self.layout.SetPage(self.html_str, "")
+        self.layout.LoadURL("www.google.com")
 
     def set_obj_attr(self, obj_attr_dict, obj_type='figure'):
         """During plot export, user can supply custom figure properties, apply these and store original values"""
